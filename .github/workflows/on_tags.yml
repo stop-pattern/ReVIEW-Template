@@ -1,4 +1,4 @@
-name: Build Re:VIEW to make distribution file
+name: Build Re:VIEW to make distribution files and create Release
 # The workflow is triggered on push to tags or manual trigger
 
 on:
@@ -17,14 +17,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # Paper: PDF only; eBook: all formats
+        # Paper: PDF only; eBook: all formats <= fewer artifacts
+        # NOTE:
+        # TechBooster/ReVIEW-build-artifact-action does not yet support config/format parameters.
+        # These matrix fields are reserved for future compatibility.
         include:
           - label: "paper"
             config: "config.yml"
             format: "pdf"
-          - label: "ebook"
-            config: "config-ebook.yml"
-            format: "pdf"
+          # - label: "ebook"
+          #   config: "config-ebook.yml"
+          #   format: "pdf"
           # - label: "ebook"
           #   config: "config-ebook.yml"
           #   format: "epub"
@@ -42,8 +45,9 @@ jobs:
       # with:
       #   config_file: ${{ matrix.config }}
       #   format: ${{ matrix.format }}
-    # Rename output file to include label
-    - name: Rename output file
+    # Rename output files to include label
+    # Intentionally rename all generated PDFs to avoid name conflicts
+    - name: Rename output files
       if: matrix.format == 'pdf'
       shell: bash
       run: |
@@ -56,7 +60,7 @@ jobs:
           mv "$OLD_FILE" "$NEW_FILE"
         done
     # Compress html output files
-    - name: Compress output file
+    - name: Compress output files
       if: matrix.format == 'html'
       shell: bash
       run: |
