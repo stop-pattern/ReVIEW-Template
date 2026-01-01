@@ -1,13 +1,15 @@
 name: Build Re:VIEW to make distribution file
-# The workflow is triggered on push tags to the repository.
+# The workflow is triggered on push to tags or manual trigger
+
 on:
   push:
     tags:
       - '*'
   workflow_dispatch:
 
+# Set permissions to allow creating releases
 permissions:
-  contents: write # リリースを作成するため
+  contents: write
 
 jobs:
   build:
