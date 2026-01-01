@@ -1,6 +1,11 @@
 name: Build Re:VIEW to make distribution file
-# The workflow is triggered on pushes to the repository.
-on: [push]
+# The workflow is triggered on push to src/ directory or manual trigger
+
+on: 
+  push:
+    paths:
+      - 'src/**'
+  workflow_dispatch:
 
 jobs:
   build:
