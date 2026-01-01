@@ -160,7 +160,9 @@ jobs:
         generate_release_notes: true
         fail_on_unmatched_files: true
         draft: true
-        files: |
-          ./artifacts/*.pdf
-          # ./artifacts/*.epub
-          # ./artifacts/*.html.zip
+        files: ./artifacts/*.pdf
+        # Future: Add more file types when supported
+        # files: |
+        #   ./artifacts/*.pdf
+        #   ./artifacts/*.epub
+        #   ./artifacts/*.html.zip
