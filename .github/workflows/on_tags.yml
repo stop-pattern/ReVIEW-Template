@@ -96,6 +96,13 @@ jobs:
         pattern: artifacts-*
         merge-multiple: true
         path: artifacts
+    # Verify artifacts exist
+    - name: Verify artifacts
+      run: |
+        ls -l artifacts
+        test -n "$(ls artifacts/*.pdf 2>/dev/null)"
+        # test -n "$(ls artifacts/*.epub 2>/dev/null)"
+        # test -n "$(ls artifacts/*.html.zip 2>/dev/null)"
     # Create GitHub Release
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
