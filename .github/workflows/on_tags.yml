@@ -13,7 +13,24 @@ permissions:
 
 jobs:
   build:
+    # build two different configuration files in parallel
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Paper: PDF only; eBook: all formats
+        include:
+          - label: "paper"
+            config: "config.yml"
+            format: "pdf"
+          - label: "ebook"
+            config: "config-ebook.yml"
+            format: "pdf"
+          # - label: "ebook"
+          #   config: "config-ebook.yml"
+          #   format: "epub"
+          # - label: "ebook"
+          #   config: "config-ebook.yml"
+          #   format: "html"
     steps:
     # uses v3 Stable version
     # https://github.com/actions/checkout
@@ -22,21 +39,67 @@ jobs:
     # Build Artifacts
     - name: Build distribution file
       uses: TechBooster/ReVIEW-build-artifact-action@master
+      # with:
+      #   config_file: ${{ matrix.config }}
+      #   format: ${{ matrix.format }}
+    # Rename output file to include label
+    - name: Rename output file
+      if: matrix.format == 'pdf'
+      shell: bash
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        for OLD_FILE in ./articles/*.${{ matrix.format }}; do
+          BASE_PATH="${OLD_FILE%.*}"
+          NEW_FILE="${BASE_PATH}-${{ matrix.label }}.${{ matrix.format }}"
+          echo "Renaming $OLD_FILE to $NEW_FILE"
+          mv "$OLD_FILE" "$NEW_FILE"
+        done
+    # Compress html output files
+    - name: Compress output file
+      if: matrix.format == 'html'
+      shell: bash
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        cd ./articles/
+        for OUT_FILE in *.${{ matrix.format }}; do
+          BASE_PATH="${OUT_FILE%.*}"
+          ZIP_PATH="${BASE_PATH}.zip"
+          echo "Compressing $BASE_PATH into $ZIP_PATH..."
+          if [ -d "$BASE_PATH" ]; then
+            zip -r "$ZIP_PATH" "$BASE_PATH.html" assets/ "$BASE_PATH"
+          else
+            zip -r "$ZIP_PATH" "$BASE_PATH.html" assets/
+          fi
+        done
     # Upload Distribution file
     - name: Upload distribution file to github artifacts
       uses: actions/upload-artifact@v4.6.1
       with:
-        name: Output documents
-        path: ./articles/*.pdf
+        name: artifacts-${{ matrix.label }}-${{ matrix.format }}
+        path: ${{ matrix.format == 'html' && './articles/*.html.zip' || format('./articles/*.{0}', matrix.format) }}
+
+  create-release:
+    # Create a GitHub release with the built artifacts
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    # Download all artifacts from the build job
+    - name: Download and merge
+      uses: actions/download-artifact@v4.3.0
+      with:
+        pattern: artifacts-*
+        merge-multiple: true
+        path: artifacts
+    # Create GitHub Release
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        # タグ名（例: v1.0.0）をリリース名にする
         name: Release ${{ github.ref_name }}
-        # 自動でチェンジログ（差分）を生成
         generate_release_notes: true
-        # 下書きにする
         draft: true
-        # アーティファクトを添付
         files: |
-          ./articles/*.pdf
+          ./artifacts/*.pdf
+          ./artifacts/*.epub
+          ./artifacts/*.html.zip
