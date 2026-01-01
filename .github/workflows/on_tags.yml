@@ -55,9 +55,18 @@ jobs:
         shopt -s nullglob
         for OLD_FILE in ./articles/*.${{ matrix.format }}; do
           BASE_PATH="${OLD_FILE%.*}"
-          NEW_FILE="${BASE_PATH}-${{ matrix.label }}.${{ matrix.format }}"
-          echo "Renaming $OLD_FILE to $NEW_FILE"
-          mv "$OLD_FILE" "$NEW_FILE"
+          FILENAME=$(basename "$BASE_PATH")
+          
+          # Check if the filename already contains the label suffix (e.g., "-paper" or "-ebook")
+          if [[ "$FILENAME" == *"-${{ matrix.label }}" ]]; then
+            # Skip renaming if label already exists in filename
+            echo "File already contains label: $OLD_FILE (skipping rename)"
+          else
+            # Append label to filename to distinguish between different build configurations
+            NEW_FILE="${BASE_PATH}-${{ matrix.label }}.${{ matrix.format }}"
+            echo "Renaming $OLD_FILE to $NEW_FILE"
+            mv "$OLD_FILE" "$NEW_FILE"
+          fi
         done
     # Compress html output files
     - name: Compress output files
@@ -69,11 +78,20 @@ jobs:
         cd ./articles/
         for OUT_FILE in *.${{ matrix.format }}; do
           BASE_PATH="${OUT_FILE%.*}"
-          ZIP_PATH="${BASE_PATH}.zip"
+          
+          # Check if the basename already contains the label suffix
+          if [[ "$BASE_PATH" == *"-${{ matrix.label }}" ]]; then
+            ZIP_PATH="${BASE_PATH}.html.zip"
+          else
+            ZIP_PATH="${BASE_PATH}-${{ matrix.label }}.html.zip"
+          fi
+          
           echo "Compressing $BASE_PATH into $ZIP_PATH..."
+          
+          # Include the main HTML file and related directories in the archive
           ZIP_ARGS=("$BASE_PATH.html")
-          [ -d assets ] && ZIP_ARGS+=("assets")
-          [ -d "$BASE_PATH" ] && ZIP_ARGS+=("$BASE_PATH")
+          [ -d assets ] && ZIP_ARGS+=("assets")  # Include assets directory if exists
+          [ -d "$BASE_PATH" ] && ZIP_ARGS+=("$BASE_PATH")  # Include book-specific directory if exists
           zip -r "$ZIP_PATH" "${ZIP_ARGS[@]}"
         done
     - name: Collect output files
@@ -82,15 +100,21 @@ jobs:
         set -euo pipefail
         shopt -s nullglob
         mkdir -p dist
+        
+        # Determine which files to collect based on the output format
         if [ "${{ matrix.format }}" = "html" ]; then
           files=(./articles/*.html.zip)
         else
           files=(./articles/*.${{ matrix.format }})
         fi
+        
+        # Verify that at least one artifact was generated
         if [ ${#files[@]} -eq 0 ]; then
           echo "ERROR: No artifacts found for format '${{ matrix.format }}'" >&2
           exit 1
         fi
+        
+        # Copy artifacts to dist directory for upload
         cp "${files[@]}" dist/
         echo "Collected artifacts:"
         ls -l dist/
