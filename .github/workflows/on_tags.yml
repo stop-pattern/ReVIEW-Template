@@ -102,8 +102,9 @@ jobs:
       with:
         name: Release ${{ github.ref_name }}
         generate_release_notes: true
+        fail_on_unmatched_files: true
         draft: true
         files: |
           ./artifacts/*.pdf
-          ./artifacts/*.epub
-          ./artifacts/*.html.zip
+          # ./artifacts/*.epub
+          # ./artifacts/*.html.zip
