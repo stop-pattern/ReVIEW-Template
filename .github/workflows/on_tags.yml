@@ -71,18 +71,36 @@ jobs:
           BASE_PATH="${OUT_FILE%.*}"
           ZIP_PATH="${BASE_PATH}.zip"
           echo "Compressing $BASE_PATH into $ZIP_PATH..."
-          if [ -d "$BASE_PATH" ]; then
-            zip -r "$ZIP_PATH" "$BASE_PATH.html" assets/ "$BASE_PATH"
-          else
-            zip -r "$ZIP_PATH" "$BASE_PATH.html" assets/
-          fi
+          ZIP_ARGS=("$BASE_PATH.html")
+          [ -d assets ] && ZIP_ARGS+=("assets")
+          [ -d "$BASE_PATH" ] && ZIP_ARGS+=("$BASE_PATH")
+          zip -r "$ZIP_PATH" "${ZIP_ARGS[@]}"
         done
-    # Upload Distribution file
-    - name: Upload distribution file to github artifacts
+    - name: Collect output files
+      shell: bash
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        mkdir -p dist
+        if [ "${{ matrix.format }}" = "html" ]; then
+          files=(./articles/*.html.zip)
+        else
+          files=(./articles/*.${{ matrix.format }})
+        fi
+        if [ ${#files[@]} -eq 0 ]; then
+          echo "ERROR: No artifacts found for format '${{ matrix.format }}'" >&2
+          exit 1
+        fi
+        cp "${files[@]}" dist/
+        echo "Collected artifacts:"
+        ls -l dist/
+    # Upload Distribution files
+    - name: Upload distribution files to github artifacts
       uses: actions/upload-artifact@v4.6.1
       with:
         name: artifacts-${{ matrix.label }}-${{ matrix.format }}
-        path: ${{ matrix.format == 'html' && './articles/*.html.zip' || format('./articles/*.{0}', matrix.format) }}
+        path: dist/*
+
 
   create-release:
     # Create a GitHub release with the built artifacts
