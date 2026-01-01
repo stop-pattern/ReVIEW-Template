@@ -6,6 +6,11 @@ on:
     tags:
       - '*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create release for'
+        required: true
+        type: string
 
 # Set permissions to allow creating releases
 permissions:
@@ -149,7 +154,9 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        name: Release ${{ github.ref_name }}
+        # Use manual input tag if provided, otherwise use the pushed tag name
+        tag_name: ${{ inputs.tag || github.ref_name }}
+        name: Release ${{ inputs.tag || github.ref_name }}
         generate_release_notes: true
         fail_on_unmatched_files: true
         draft: true
