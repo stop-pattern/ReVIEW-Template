@@ -21,6 +21,7 @@ jobs:
     # build two different configuration files in parallel
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         # Paper: PDF only; eBook: all formats <= fewer artifacts
         # NOTE:
@@ -30,15 +31,15 @@ jobs:
           - label: "paper"
             config: "config.yml"
             format: "pdf"
-          # - label: "ebook"
-          #   config: "config-ebook.yml"
-          #   format: "pdf"
+          - label: "ebook"
+            config: "config-ebook.yml"
+            format: "pdf"
           # - label: "ebook"
           #   config: "config-ebook.yml"
           #   format: "epub"
-          # - label: "ebook"
-          #   config: "config-ebook.yml"
-          #   format: "html"
+          - label: "ebook"
+            config: "config-ebook.yml"
+            format: "html"
     steps:
     # uses v3 Stable version
     # https://github.com/actions/checkout
@@ -46,10 +47,10 @@ jobs:
       uses: actions/checkout@v4.2.2
     # Build Artifacts
     - name: Build distribution file
-      uses: TechBooster/ReVIEW-build-artifact-action@master
-      # with:
-      #   config_file: ${{ matrix.config }}
-      #   format: ${{ matrix.format }}
+      uses: stop-pattern/ReVIEW-build-artifact-action@a831c6322f987d82f57e856f4ddd20edf0ad551d
+      with:
+        config_file: ${{ matrix.config }}
+        format: ${{ matrix.format }}
     # Rename output files to include label
     # Intentionally rename all generated PDFs to avoid name conflicts
     - name: Rename output files
@@ -65,11 +66,11 @@ jobs:
           # Check if the filename contains the label anywhere in the name (e.g., "book-paper" or "paper-book" or "my-paper-book")
           if [[ "$FILENAME" == *"${{ matrix.label }}"* ]]; then
             # Skip renaming if label already exists anywhere in filename
-            echo "File already contains label '${{ matrix.label }}': $OLD_FILE (skipping rename)"
+            echo "::notice::File already contains label '${{ matrix.label }}': $OLD_FILE (skipping rename)"
           else
             # Append label to filename to distinguish between different build configurations
             NEW_FILE="${BASE_PATH}-${{ matrix.label }}.${{ matrix.format }}"
-            echo "Renaming $OLD_FILE to $NEW_FILE"
+            echo "::notice::Renaming $OLD_FILE to $NEW_FILE"
             mv "$OLD_FILE" "$NEW_FILE"
           fi
         done
@@ -91,7 +92,7 @@ jobs:
             ZIP_PATH="${BASE_PATH}-${{ matrix.label }}.html.zip"
           fi
           
-          echo "Compressing $BASE_PATH into $ZIP_PATH..."
+          echo "::notice::Compressing $BASE_PATH into $ZIP_PATH..."
           
           # Include the main HTML file and related directories in the archive
           ZIP_ARGS=("$BASE_PATH.html")
@@ -102,6 +103,11 @@ jobs:
     - name: Collect output files
       shell: bash
       run: |
+        echo "::group::ls aLR"
+        echo "::debug title=log::\$ ls -aLR ./articles/"
+        ls -ahlLR ./articles/
+        echo "::endgroup::"
+
         set -euo pipefail
         shopt -s nullglob
         mkdir -p dist
@@ -115,14 +121,15 @@ jobs:
         
         # Verify that at least one artifact was generated
         if [ ${#files[@]} -eq 0 ]; then
-          echo "ERROR: No artifacts found for format '${{ matrix.format }}'" >&2
+          echo "::error::No artifacts found for format '${{ matrix.format }}'" >&2
           exit 1
         fi
         
         # Copy artifacts to dist directory for upload
         cp "${files[@]}" dist/
-        echo "Collected artifacts:"
-        ls -l dist/
+        echo "::debug title=Collected artifacts:::"
+        echo "\$ ls -lh dist/"
+        ls -lh dist/
     # Upload Distribution files
     - name: Upload distribution files to github artifacts
       uses: actions/upload-artifact@v4.6.1
@@ -160,9 +167,7 @@ jobs:
         generate_release_notes: true
         fail_on_unmatched_files: true
         draft: true
-        files: ./artifacts/*.pdf
-        # Future: Add more file types when supported
-        # files: |
-        #   ./artifacts/*.pdf
-        #   ./artifacts/*.epub
-        #   ./artifacts/*.html.zip
+        files: |
+          ./artifacts/*.pdf
+          ./artifacts/*.epub
+          ./artifacts/*.html.zip
