@@ -168,6 +168,4 @@ jobs:
         fail_on_unmatched_files: true
         draft: true
         files: |
-          ./artifacts/*.pdf
-          ./artifacts/*.epub
-          ./artifacts/*.html.zip
+          ./artifacts/*
