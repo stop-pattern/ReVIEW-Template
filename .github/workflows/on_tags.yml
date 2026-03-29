@@ -40,6 +40,8 @@ jobs:
           - label: "ebook"
             config: "config-ebook.yml"
             format: "html"
+    env:
+      TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
     steps:
     # uses v3 Stable version
     # https://github.com/actions/checkout
@@ -69,7 +71,7 @@ jobs:
             echo "File already contains label '${{ matrix.label }}': $OLD_FILE (skipping rename)"
           else
             # Append label to filename to distinguish between different build configurations
-            NEW_FILE="${BASE_PATH}-${{ matrix.label }}.${{ matrix.format }}"
+            NEW_FILE="${BASE_PATH}-${{ matrix.label }}-$TAG.${{ matrix.format }}"
             echo "Renaming $OLD_FILE to $NEW_FILE"
             mv "$OLD_FILE" "$NEW_FILE"
           fi
