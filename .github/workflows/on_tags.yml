@@ -66,11 +66,11 @@ jobs:
           # Check if the filename contains the label anywhere in the name (e.g., "book-paper" or "paper-book" or "my-paper-book")
           if [[ "$FILENAME" == *"${{ matrix.label }}"* ]]; then
             # Skip renaming if label already exists anywhere in filename
-            echo "::notice::File already contains label '${{ matrix.label }}': $OLD_FILE (skipping rename)"
+            echo "File already contains label '${{ matrix.label }}': $OLD_FILE (skipping rename)"
           else
             # Append label to filename to distinguish between different build configurations
             NEW_FILE="${BASE_PATH}-${{ matrix.label }}.${{ matrix.format }}"
-            echo "::notice::Renaming $OLD_FILE to $NEW_FILE"
+            echo "Renaming $OLD_FILE to $NEW_FILE"
             mv "$OLD_FILE" "$NEW_FILE"
           fi
         done
@@ -92,7 +92,7 @@ jobs:
             ZIP_PATH="${BASE_PATH}-${{ matrix.label }}.html.zip"
           fi
           
-          echo "::notice::Compressing $BASE_PATH into $ZIP_PATH..."
+          echo "Compressing $BASE_PATH into $ZIP_PATH..."
           
           # Include the main HTML file and related directories in the archive
           ZIP_ARGS=("$BASE_PATH.html")
